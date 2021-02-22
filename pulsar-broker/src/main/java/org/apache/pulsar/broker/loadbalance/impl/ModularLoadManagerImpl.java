@@ -71,6 +71,8 @@ import org.apache.pulsar.common.stats.Metrics;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.common.util.collections.ConcurrentOpenHashMap;
 import org.apache.pulsar.common.util.collections.ConcurrentOpenHashSet;
+import org.apache.pulsar.metadata.api.MetadataCache;
+import org.apache.pulsar.metadata.api.MetadataStoreException;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.policies.data.loadbalancer.SystemResourceUsage;
@@ -120,7 +122,7 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
     private final Set<String> brokerCandidateCache;
 
     // ZooKeeper cache of the local broker data, stored in LoadManager.LOADBALANCE_BROKER_ROOT.
-    private ZooKeeperDataCache<LocalBrokerData> brokerDataCache;
+    private MetadataCache<LocalBrokerData> brokerDataCache;
 
     // Broker host usage object used to calculate system resource usage.
     private BrokerHostUsage brokerHostUsage;
@@ -251,12 +253,7 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
             }
         });
 
-        brokerDataCache = new ZooKeeperDataCache<LocalBrokerData>(pulsar.getLocalZkCache()) {
-            @Override
-            public LocalBrokerData deserialize(String key, byte[] content) throws Exception {
-                return ObjectMapperFactory.getThreadLocal().readValue(content, LocalBrokerData.class);
-            }
-        };
+        brokerDataCache = pulsar.getConfigurationMetadataStore().getMetadataCache(LocalBrokerData.class);
 
         brokerDataCache.registerListener(this);
 
@@ -478,8 +475,8 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
         for (String broker : activeBrokers) {
             try {
                 String key = String.format("%s/%s", LoadManager.LOADBALANCE_BROKERS_ROOT, broker);
-                final LocalBrokerData localData = brokerDataCache.get(key)
-                        .orElseThrow(KeeperException.NoNodeException::new);
+                final LocalBrokerData localData = brokerDataCache.get(key).get()
+                        .orElseThrow(MetadataStoreException.NotFoundException::new);
 
                 if (brokerDataMap.containsKey(broker)) {
                     // Replace previous local broker data.
@@ -489,7 +486,7 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
                     // brokers.
                     brokerDataMap.put(broker, new BrokerData(localData));
                 }
-            } catch (NoNodeException ne) {
+            } catch (MetadataStoreException.NotFoundException ne) {
                 // it only happens if we update-brokerData before availableBrokerCache refreshed with latest data and
                 // broker's delete-znode watch-event hasn't updated availableBrokerCache
                 brokerDataMap.remove(broker);
@@ -941,11 +938,6 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
         if (availableActiveBrokers != null) {
             availableActiveBrokers.close();
         }
-
-        if (brokerDataCache != null) {
-            brokerDataCache.close();
-            brokerDataCache.clear();
-        }
         scheduler.shutdown();
     }
 
@@ -1105,7 +1097,7 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
     public LocalBrokerData getBrokerLocalData(String broker) {
         String key = String.format("%s/%s", LoadManager.LOADBALANCE_BROKERS_ROOT, broker);
         try {
-            return brokerDataCache.get(key).orElse(null);
+            return brokerDataCache.get(key).get().orElse(null);
         } catch (Exception e) {
             log.warn("Failed to get local-broker data for {}", broker, e);
             return null;
