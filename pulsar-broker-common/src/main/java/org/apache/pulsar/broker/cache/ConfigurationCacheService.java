@@ -24,11 +24,7 @@ import org.apache.bookkeeper.util.ZkUtils;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import org.apache.pulsar.broker.PulsarServerException;
 import org.apache.pulsar.broker.resources.PulsarResources;
-import org.apache.pulsar.common.policies.data.ClusterData;
-import org.apache.pulsar.common.policies.data.FailureDomain;
-import org.apache.pulsar.common.policies.data.NamespaceIsolationData;
-import org.apache.pulsar.common.policies.data.Policies;
-import org.apache.pulsar.common.policies.data.TenantInfo;
+import org.apache.pulsar.common.policies.data.*;
 import org.apache.pulsar.common.policies.impl.NamespaceIsolationPolicies;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.zookeeper.ZooKeeperCache;
@@ -56,6 +52,7 @@ public class ConfigurationCacheService {
     private final ZooKeeperCache cache;
     private ZooKeeperDataCache<TenantInfo> propertiesCache;
     private ZooKeeperDataCache<Policies> policiesCache;
+    private ZooKeeperDataCache<LocalPolicies> localPoliciesCache;
     private ZooKeeperDataCache<ClusterData> clustersCache;
     private ZooKeeperChildrenCache clustersListCache;
     private ZooKeeperChildrenCache failureDomainListCache;
@@ -98,6 +95,13 @@ public class ConfigurationCacheService {
             @Override
             public Policies deserialize(String path, byte[] content) throws Exception {
                 return ObjectMapperFactory.getThreadLocal().readValue(content, Policies.class);
+            }
+        };
+
+        this.localPoliciesCache = new ZooKeeperDataCache<LocalPolicies>(cache) {
+            @Override
+            public LocalPolicies deserialize(String path, byte[] content) throws Exception {
+                return ObjectMapperFactory.getThreadLocal().readValue(content, LocalPolicies.class);
             }
         };
 
@@ -187,6 +191,10 @@ public class ConfigurationCacheService {
 
     public ZooKeeperDataCache<Policies> policiesCache() {
         return this.policiesCache;
+    }
+
+    public ZooKeeperDataCache<LocalPolicies> localPoliciesCache() {
+        return this.localPoliciesCache;
     }
 
     public ZooKeeperDataCache<ClusterData> clustersCache() {

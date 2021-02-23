@@ -79,9 +79,9 @@ public class NamespaceBundleFactory implements ZooKeeperCacheListener<LocalPolic
 
             CompletableFuture<NamespaceBundles> future = new CompletableFuture<>();
             // Read the static bundle data from the policies
-            pulsar.getConfigurationCacheService().policiesCache().getWithStatAsync(path).thenAccept(result -> {
+            pulsar.getConfigurationCache().getPulsarResources().getPolicies().getAsync(path).thenAccept(result -> {
                 // If no policies defined for namespace, assume 1 single bundle
-                BundlesData bundlesData = result.map(Entry::getKey).map(p -> p.bundles).orElse(null);
+                BundlesData bundlesData = result.map(p -> p.bundles).orElse(null);
                 NamespaceBundles namespaceBundles = getBundles(
                     namespace, bundlesData, result.map(Entry::getValue).map(s -> s.getVersion()).orElse(-1));
 
@@ -103,7 +103,7 @@ public class NamespaceBundleFactory implements ZooKeeperCacheListener<LocalPolic
         CacheMetricsCollector.CAFFEINE.addCache("bundles", this.bundlesCache);
 
         // local-policies have been changed which has contains namespace bundles
-        pulsar.getLocalZkCacheService().policiesCache()
+        pulsar.getConfigurationCache().policiesCache()
                 .registerListener((String path, LocalPolicies data, Stat stat) -> {
                     String[] paths = path.split(LOCAL_POLICIES_ROOT + "/");
                     if (paths.length == 2) {
@@ -112,7 +112,7 @@ public class NamespaceBundleFactory implements ZooKeeperCacheListener<LocalPolic
                 });
 
         if (pulsar != null && pulsar.getConfigurationCache() != null) {
-            pulsar.getLocalZkCacheService().policiesCache().registerListener(this);
+            pulsar.getConfigurationCache().policiesCache().registerListener(this);
         }
 
         this.pulsar = pulsar;
