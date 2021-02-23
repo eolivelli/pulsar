@@ -72,6 +72,7 @@ import org.apache.pulsar.broker.admin.AdminResource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
 import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.cache.ConfigurationCacheService;
+import org.apache.pulsar.broker.cache.ConfigurationMetadataCacheService;
 import org.apache.pulsar.broker.cache.LocalZooKeeperCacheService;
 import org.apache.pulsar.broker.intercept.BrokerInterceptor;
 import org.apache.pulsar.broker.intercept.BrokerInterceptors;
@@ -165,7 +166,6 @@ public class PulsarService implements AutoCloseable {
     private WebService webService = null;
     private WebSocketService webSocketService = null;
     private ConfigurationCacheService configurationCacheService = null;
-    private LocalZooKeeperCacheService localZkCacheService = null;
     private TopicPoliciesService topicPoliciesService = TopicPoliciesService.DISABLED;
     private BookKeeperClientFactory bkClientFactory;
     private ZooKeeperCache localZkCache;
@@ -344,7 +344,6 @@ public class PulsarService implements AutoCloseable {
             }
 
             configurationCacheService = null;
-            localZkCacheService = null;
             if (localZkCache != null) {
                 localZkCache.stop();
                 localZkCache = null;
@@ -817,9 +816,8 @@ public class PulsarService implements AutoCloseable {
             throw new PulsarServerException(e);
         }
 
-        this.configurationCacheService = new ConfigurationCacheService(globalZkCache, this.config.getClusterName(),
-                pulsarResources);
-        this.localZkCacheService = new LocalZooKeeperCacheService(getLocalZkCache(), this.configurationCacheService);
+        this.configurationCacheService = new ConfigurationMetadataCacheService(pulsarResources,
+                config.getClusterName());
     }
 
     protected void startNamespaceService() throws PulsarServerException {
@@ -1075,9 +1073,6 @@ public class PulsarService implements AutoCloseable {
         return orderedExecutor;
     }
 
-    public LocalZooKeeperCacheService getLocalZkCacheService() {
-        return this.localZkCacheService;
-    }
 
     public ZooKeeperClientFactory getZooKeeperClientFactory() {
         if (zkClientFactory == null) {
@@ -1341,7 +1336,7 @@ public class PulsarService implements AutoCloseable {
                 config,
                 workerConfig,
                 pulsarResources,
-                getConfigurationCacheService(),
+                configurationCacheService,
                 getInternalConfigurationData()
             );
 

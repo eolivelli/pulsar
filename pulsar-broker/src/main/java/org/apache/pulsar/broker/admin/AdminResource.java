@@ -38,6 +38,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.bookkeeper.client.BookKeeper;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.ServiceConfiguration;
+import org.apache.pulsar.broker.cache.ConfigurationCacheService;
 import org.apache.pulsar.broker.cache.LocalZooKeeperCacheService;
 import org.apache.pulsar.broker.service.BrokerServiceException;
 import org.apache.pulsar.broker.web.PulsarWebResource;
@@ -93,8 +94,8 @@ public abstract class AdminResource extends PulsarWebResource {
         return pulsar().getLocalZkCache();
     }
 
-    protected LocalZooKeeperCacheService localCacheService() {
-        return pulsar().getLocalZkCacheService();
+    protected ConfigurationCacheService localCacheService() {
+        return pulsar().getConfigurationCacheService();
     }
 
     protected void localZKCreate(String path, byte[] content) throws Exception {

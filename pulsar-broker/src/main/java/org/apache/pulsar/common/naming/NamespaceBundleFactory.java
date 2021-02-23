@@ -79,7 +79,7 @@ public class NamespaceBundleFactory implements ZooKeeperCacheListener<LocalPolic
 
             CompletableFuture<NamespaceBundles> future = new CompletableFuture<>();
             // Read the static bundle data from the policies
-            pulsar.getLocalZkCacheService().policiesCache().getWithStatAsync(path).thenAccept(result -> {
+            pulsar.getConfigurationCacheService().policiesCache().getWithStatAsync(path).thenAccept(result -> {
                 // If no policies defined for namespace, assume 1 single bundle
                 BundlesData bundlesData = result.map(Entry::getKey).map(p -> p.bundles).orElse(null);
                 NamespaceBundles namespaceBundles = getBundles(
