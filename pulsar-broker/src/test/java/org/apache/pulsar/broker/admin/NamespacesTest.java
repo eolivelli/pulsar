@@ -524,7 +524,7 @@ public class NamespacesTest extends MockedPulsarServiceBaseTest {
         // Sometimes watcher event consumes scheduled exception, so set to always fail to ensure exception is
         // thrown for api call.
         mockZooKeeperGlobal.setAlwaysFail(Code.SESSIONEXPIRED);
-        pulsar.getConfigurationCache().policiesCache().invalidate(AdminResource.path(POLICIES, this.testTenant,
+        pulsar.getPulsarResources().getPolicies().invalidate(AdminResource.path(POLICIES, this.testTenant,
                 "global", this.testGlobalNamespaces.get(0).getLocalName()));
         try {
             namespaces.setNamespaceReplicationClusters(this.testTenant, "global",
@@ -575,8 +575,6 @@ public class NamespacesTest extends MockedPulsarServiceBaseTest {
                 return op == MockZooKeeper.Op.GET
                     && path.equals("/admin/policies/my-tenant/global/test-global-ns1");
             });
-
-        pulsar.getConfigurationCache().policiesCache().clear();
 
         policiesCache.invalidateAll();
         store.invalidateAll();
@@ -979,7 +977,7 @@ public class NamespacesTest extends MockedPulsarServiceBaseTest {
             final String path = PulsarWebResource.path(POLICIES, property);
             final String data = ObjectMapperFactory.getThreadLocal().writeValueAsString(
                     new TenantInfo(Sets.newHashSet(namespaces.clientAppId()), Sets.newHashSet("use")));
-            ZkUtils.createFullPathOptimistic(pulsar.getConfigurationCache().getZooKeeper(), path, data.getBytes(),
+            ZkUtils.createFullPathOptimistic(pulsar.getZkClient(), path, data.getBytes(),
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
             namespaces.validateTenantOperation(property, null);

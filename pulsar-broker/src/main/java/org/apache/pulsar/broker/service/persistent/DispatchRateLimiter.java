@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.cache.ConfigurationCacheService;
+import org.apache.pulsar.broker.resources.PulsarResources;
 import org.apache.pulsar.broker.service.BrokerService;
 import org.apache.pulsar.broker.service.BrokerServiceException;
 import org.apache.pulsar.common.naming.NamespaceName;
@@ -310,9 +311,9 @@ public class DispatchRateLimiter {
         final String path = path(POLICIES, namespace.toString());
         Optional<Policies> policies = Optional.empty();
         try {
-            ConfigurationCacheService configurationCacheService = brokerService.pulsar().getConfigurationCache();
-            if (configurationCacheService != null) {
-                policies = configurationCacheService.policiesCache().getAsync(path)
+            PulsarResources pulsarResources = brokerService.pulsar().getPulsarResources();
+            if (pulsarResources != null) {
+                policies = pulsarResources.getPolicies().getAsync(path)
                         .get(brokerService.pulsar().getConfiguration().getZooKeeperOperationTimeoutSeconds(), SECONDS);
             }
         } catch (Exception e) {

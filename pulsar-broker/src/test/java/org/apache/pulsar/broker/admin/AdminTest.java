@@ -69,7 +69,7 @@ import org.apache.pulsar.broker.admin.v1.ResourceQuotas;
 import org.apache.pulsar.broker.admin.v2.SchemasResource;
 import org.apache.pulsar.broker.auth.MockedPulsarServiceBaseTest;
 import org.apache.pulsar.broker.authentication.AuthenticationDataHttps;
-import org.apache.pulsar.broker.cache.ConfigurationCacheService;
+import org.apache.pulsar.broker.resources.PulsarResources;
 import org.apache.pulsar.broker.web.PulsarWebResource;
 import org.apache.pulsar.broker.web.RestException;
 import org.apache.pulsar.common.conf.InternalConfigurationData;
@@ -87,6 +87,7 @@ import org.apache.pulsar.common.policies.data.ResourceQuota;
 import org.apache.pulsar.common.stats.AllocatorStats;
 import org.apache.pulsar.common.stats.Metrics;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
+import org.apache.pulsar.metadata.api.MetadataCache;
 import org.apache.pulsar.metadata.cache.impl.MetadataCacheImpl;
 import org.apache.pulsar.metadata.impl.AbstractMetadataStore;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
@@ -106,7 +107,7 @@ public class AdminTest extends MockedPulsarServiceBaseTest {
     private static final Logger log = LoggerFactory.getLogger(AdminTest.class);
 
     private final String configClusterName = "use";
-    private ConfigurationCacheService configurationCache;
+    private PulsarResources pulsarResources;
     private Clusters clusters;
     private Properties properties;
     private Namespaces namespaces;
@@ -131,7 +132,7 @@ public class AdminTest extends MockedPulsarServiceBaseTest {
     public void setup() throws Exception {
         super.internalSetup();
 
-        configurationCache = pulsar.getConfigurationCache();
+        pulsarResources = pulsar.getPulsarResources();
 
         clusters = spy(new Clusters());
         clusters.setPulsar(pulsar);
@@ -305,9 +306,9 @@ public class AdminTest extends MockedPulsarServiceBaseTest {
                 return op == MockZooKeeper.Op.GET_CHILDREN
                     && path.equals("/admin/clusters");
             });
-        configurationCache.clustersListCache().clear();
+
         // clear caches to load data from metadata-store again
-        MetadataCacheImpl<ClusterData> clusterCache = (MetadataCacheImpl<ClusterData>) pulsar.getPulsarResources()
+        MetadataCache<ClusterData> clusterCache = (MetadataCache<ClusterData>) pulsar.getPulsarResources()
                 .getClusterResources().getCache();
         MetadataCacheImpl isolationPolicyCache = (MetadataCacheImpl) pulsar.getPulsarResources()
                 .getNamespaceResources().getIsolationPolicies().getCache();
@@ -742,10 +743,9 @@ public class AdminTest extends MockedPulsarServiceBaseTest {
         assertEquals(persistentTopics.getPartitionedTopicMetadata(topicName, true, false).partitions, 5);
 
         CountDownLatch notificationLatch = new CountDownLatch(2);
-        configurationCache.policiesCache().registerListener((path, data, stat) -> {
+        pulsarResources.getPolicies().getStore().registerListener( n -> {
             notificationLatch.countDown();
         });
-
         // grant permission
         final Set<AuthAction> actions = Sets.newHashSet(AuthAction.produce);
         final String role = "test-role";

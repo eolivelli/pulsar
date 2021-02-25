@@ -255,7 +255,7 @@ public abstract class AbstractReplicator {
                 topicName.getEncodedLocalName());
         boolean isPartitionedTopic = false;
         try {
-            isPartitionedTopic = brokerService.pulsar().getConfigurationCache().policiesCache()
+            isPartitionedTopic = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(partitionedTopicPath).isPresent();
         } catch (Exception e) {
             log.warn("Failed to verify partitioned topic {}-{}", topicName, e.getMessage());

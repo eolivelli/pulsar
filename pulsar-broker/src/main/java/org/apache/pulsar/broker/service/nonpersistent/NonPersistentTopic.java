@@ -133,7 +133,7 @@ public class NonPersistentTopic extends AbstractTopic implements Topic {
         this.isFenced = false;
 
         try {
-            Policies policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            Policies policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
             isEncryptionRequired = policies.encryption_required;
@@ -468,7 +468,7 @@ public class NonPersistentTopic extends AbstractTopic implements Topic {
 
         Policies policies = null;
         try {
-            policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, name.getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
         } catch (Exception e) {
@@ -860,7 +860,7 @@ public class NonPersistentTopic extends AbstractTopic implements Topic {
     public void checkInactiveSubscriptions() {
         TopicName name = TopicName.get(topic);
         try {
-            Policies policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            Policies policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, name.getNamespace()))
                     .orElseThrow(KeeperException.NoNodeException::new);
             final int defaultExpirationTime = brokerService.pulsar().getConfiguration()

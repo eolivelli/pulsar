@@ -432,7 +432,7 @@ public class MessageDeduplication {
         if (topicPolicies != null && topicPolicies.isDeduplicationSet()) {
             return CompletableFuture.completedFuture(topicPolicies.getDeduplicationEnabled());
         }
-        return pulsar.getConfigurationCache().policiesCache()
+        return pulsar.getPulsarResources().getPolicies()
                 .getAsync(AdminResource.path(POLICIES, name.getNamespace())).thenApply(policies -> {
                     // If namespace policies have the field set, it will override the broker-level setting
                     if (policies.isPresent() && policies.get().deduplicationEnabled != null) {
@@ -497,7 +497,7 @@ public class MessageDeduplication {
         try {
             //if topic-level policies not exists, try to get namespace-level policies
             if (interval == null) {
-                final Optional<Policies> policies = pulsar.getConfigurationCache().policiesCache()
+                final Optional<Policies> policies = pulsar.getPulsarResources().getPolicies()
                         .get(ZkAdminPaths.namespacePoliciesPath(TopicName.get(topic.getName()).getNamespaceObject()));
                 if (policies.isPresent()) {
                     interval = policies.get().deduplicationSnapshotIntervalSeconds;

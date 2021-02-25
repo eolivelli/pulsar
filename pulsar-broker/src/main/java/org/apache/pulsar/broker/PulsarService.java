@@ -926,6 +926,10 @@ public class PulsarService implements AutoCloseable {
         return configurationCacheService;
     }
 
+    public PulsarResources getPulsarResources() {
+        return pulsarResources;
+    }
+
     /**
      * Get the current pulsar state.
      */

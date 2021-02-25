@@ -268,7 +268,7 @@ public class PersistentTopic extends AbstractTopic
         this.messageDeduplication = new MessageDeduplication(brokerService.pulsar(), this, ledger);
 
         try {
-            Policies policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            Policies policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
             this.isEncryptionRequired = policies.encryption_required;
@@ -559,7 +559,7 @@ public class PersistentTopic extends AbstractTopic
     public void startReplProducers() {
         // read repl-cluster from policies to avoid restart of replicator which are in process of disconnect and close
         try {
-            Policies policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            Policies policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
             if (policies.replication_clusters != null) {
@@ -1203,7 +1203,7 @@ public class PersistentTopic extends AbstractTopic
 
         Policies policies = null;
         try {
-            policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, name.getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
         } catch (Exception e) {
@@ -1295,7 +1295,7 @@ public class PersistentTopic extends AbstractTopic
                 .map(TopicPolicies::getCompactionThreshold)
                 .orElse(null);
             if (compactionThreshold == null) {
-                Policies policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+                Policies policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, name.getNamespace()))
                     .orElseThrow(() -> new KeeperException.NoNodeException());
                 compactionThreshold = policies.compaction_threshold;

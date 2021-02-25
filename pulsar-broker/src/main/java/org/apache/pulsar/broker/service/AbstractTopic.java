@@ -134,7 +134,7 @@ public abstract class AbstractTopic implements Topic {
         this.lastActive = System.nanoTime();
         Policies policies = null;
         try {
-            policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+            policies = brokerService.pulsar().getPulsarResources().getPolicies()
                     .get(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()))
                     .orElseGet(() -> new Policies());
         } catch (Exception e) {
@@ -155,7 +155,7 @@ public abstract class AbstractTopic implements Topic {
         if (maxProducers == null) {
             Policies policies;
             try {
-                policies = brokerService.pulsar().getConfigurationCache().policiesCache()
+                policies = brokerService.pulsar().getPulsarResources().getPolicies()
                         .get(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()))
                         .orElseGet(() -> new Policies());
             } catch (Exception e) {
@@ -181,8 +181,8 @@ public abstract class AbstractTopic implements Topic {
             Policies policies;
             try {
                 // Use getDataIfPresent from zk cache to make the call non-blocking and prevent deadlocks
-                policies = brokerService.pulsar().getConfigurationCache().policiesCache()
-                        .getDataIfPresent(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()));
+                policies = brokerService.pulsar().getPulsarResources().getPolicies()
+                        .getIfPresent(AdminResource.path(POLICIES, TopicName.get(topic).getNamespace()));
 
                 if (policies == null) {
                     policies = new Policies();

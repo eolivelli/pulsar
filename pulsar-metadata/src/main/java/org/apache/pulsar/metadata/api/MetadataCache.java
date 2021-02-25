@@ -137,4 +137,15 @@ public interface MetadataCache<T> {
      * @param path the path of the object in the metadata store
      */
     void invalidate(String path);
+
+    /**
+     * Force the invalidation of all of the entries.
+     */
+    void invalidateAll();
+
+    /**
+     * Access underlying store.
+     * @return the store.
+     */
+    MetadataStore getStore();
 }

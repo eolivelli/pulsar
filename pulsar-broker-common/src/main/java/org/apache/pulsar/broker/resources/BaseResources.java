@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import lombok.Getter;
+import org.apache.pulsar.common.policies.data.Policies;
 import org.apache.pulsar.metadata.api.MetadataCache;
 import org.apache.pulsar.metadata.api.MetadataStoreException;
 import org.apache.pulsar.metadata.api.extended.MetadataStoreExtended;
@@ -159,5 +160,15 @@ public class BaseResources<T> {
 
     public CompletableFuture<Boolean> existsAsync(String path) {
         return cache.exists(path);
+    }
+
+    public void invalidate(String path) {
+        cache.invalidate(path);
+    }
+
+    public T getIfPresent(String path) {
+        return cache
+                .getIfCached(path)
+                .orElse(null);
     }
 }

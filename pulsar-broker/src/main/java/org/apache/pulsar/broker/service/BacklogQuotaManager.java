@@ -29,6 +29,8 @@ import org.apache.bookkeeper.mledger.ManagedCursor.IndividualDeletedEntries;
 import org.apache.bookkeeper.mledger.impl.ManagedLedgerImpl;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.admin.AdminResource;
+import org.apache.pulsar.broker.resources.LocalPoliciesResources;
+import org.apache.pulsar.broker.resources.PoliciesResources;
 import org.apache.pulsar.broker.service.persistent.PersistentTopic;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.BacklogQuota;
@@ -43,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class BacklogQuotaManager {
     private static final Logger log = LoggerFactory.getLogger(BacklogQuotaManager.class);
     private final BacklogQuota defaultQuota;
-    private final ZooKeeperDataCache<Policies> zkCache;
+    private final PoliciesResources zkCache;
     private final PulsarService pulsar;
     private final boolean isTopicLevelPoliciesEnable;
 
@@ -53,7 +55,7 @@ public class BacklogQuotaManager {
         this.defaultQuota = new BacklogQuota(
                 pulsar.getConfiguration().getBacklogQuotaDefaultLimitGB() * 1024 * 1024 * 1024,
                 pulsar.getConfiguration().getBacklogQuotaDefaultRetentionPolicy());
-        this.zkCache = pulsar.getConfigurationCache().policiesCache();
+        this.zkCache = pulsar.getPulsarResources().getPolicies();
         this.pulsar = pulsar;
     }
 

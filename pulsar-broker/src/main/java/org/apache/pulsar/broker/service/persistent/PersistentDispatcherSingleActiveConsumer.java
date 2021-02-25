@@ -142,8 +142,8 @@ public class PersistentDispatcherSingleActiveConsumer extends AbstractDispatcher
                     .orElse(null);
             if (maxConsumersPerSubscription == null) {
                 // Use getDataIfPresent from zk cache to make the call non-blocking and prevent deadlocks in addConsumer
-                policies = topic.getBrokerService().pulsar().getConfigurationCache().policiesCache()
-                        .getDataIfPresent(AdminResource.path(POLICIES, TopicName.get(topic.getName()).getNamespace()));
+                policies = topic.getBrokerService().pulsar().getPulsarResources().getPolicies()
+                        .getIfPresent(AdminResource.path(POLICIES, TopicName.get(topic.getName()).getNamespace()));
 
                 if (policies == null) {
                     policies = new Policies();

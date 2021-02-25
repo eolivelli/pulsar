@@ -655,7 +655,7 @@ public class ModularLoadManagerImpl implements ModularLoadManager, ZooKeeperCach
 
     public boolean shouldAntiAffinityNamespaceUnload(String namespace, String bundle, String currentBroker) {
         try {
-            Optional<LocalPolicies> nsPolicies = pulsar.getConfigurationCache().getPulsarResources().getLocalPolicies()
+            Optional<LocalPolicies> nsPolicies = pulsar.getPulsarResources().getLocalPolicies()
                     .get(joinPath(LOCAL_POLICIES_ROOT, namespace));
             if (!nsPolicies.isPresent() || StringUtils.isBlank(nsPolicies.get().namespaceAntiAffinityGroup)) {
                 return true;
