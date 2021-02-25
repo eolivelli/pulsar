@@ -23,6 +23,14 @@ set -x
 set -o pipefail
 set -o errexit
 
+env
+
+JAVA_HOME=$JAVA_HOME_11
+export JAVA_HOME
+
+echo "Current Java home is $JAVA_HOME"
+$JAVA_HOME/bin/java --version
+
 MVN_TEST_COMMAND='build/retry.sh mvn -B -ntp test'
 
 # Test Groups  -- start --
