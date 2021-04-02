@@ -71,7 +71,7 @@ jobs:
         if: ${{ steps.changes.outputs.all_count > steps.changes.outputs.docs_count }}
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 11
 
       - name: Replace maven's wagon-http version
         if: ${{ steps.changes.outputs.all_count > steps.changes.outputs.docs_count }}
