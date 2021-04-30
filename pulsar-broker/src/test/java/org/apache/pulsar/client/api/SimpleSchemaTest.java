@@ -33,6 +33,7 @@ import static org.testng.Assert.fail;
 import org.apache.avro.reflect.ReflectData;
 import org.apache.avro.Schema.Parser;
 import org.apache.pulsar.client.impl.MessageImpl;
+import org.apache.pulsar.client.impl.schema.KeyValueSchema;
 import org.apache.pulsar.common.schema.LongSchemaVersion;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException.IncompatibleSchemaException;
@@ -527,8 +528,11 @@ public class SimpleSchemaTest extends ProducerConsumerBase {
                 assertEquals(data.getValue().getField("i"), i);
                 MessageImpl impl = (MessageImpl) data;
 
-                org.apache.avro.Schema avroSchema = (org.apache.avro.Schema) impl.getSchema().getNativeSchema().get();
+                org.apache.avro.Schema avroSchema = (org.apache.avro.Schema) impl.getSchemaInternal().getNativeSchema().get();
                 assertNotNull(avroSchema);
+
+                org.apache.avro.Schema avroSchema2 = (org.apache.avro.Schema) data.getSchema().get().getNativeSchema().get();
+                assertNotNull(avroSchema2);
             }
 
         }
@@ -598,6 +602,9 @@ public class SimpleSchemaTest extends ProducerConsumerBase {
                 assertNotNull(data.getSchemaVersion());
                 assertEquals(data.getValue().getKey().getField("i"), i * 100);
                 assertEquals(data.getValue().getValue().getField("i"), i * 1000);
+                KeyValueSchema keyValueSchema = (KeyValueSchema) data.getSchema().get();
+                assertNotNull(keyValueSchema.getKeySchema());
+                assertNotNull(keyValueSchema.getValueSchema());
             }
 
             // verify c2
@@ -606,6 +613,9 @@ public class SimpleSchemaTest extends ProducerConsumerBase {
                 assertNotNull(data.getSchemaVersion());
                 assertEquals(data.getValue().getKey().i, i * 100);
                 assertEquals(data.getValue().getValue().i, i * 1000);
+                KeyValueSchema keyValueSchema = (KeyValueSchema) data.getSchema().get();
+                assertNotNull(keyValueSchema.getKeySchema());
+                assertNotNull(keyValueSchema.getValueSchema());
             }
 
             // verify c3
@@ -614,6 +624,9 @@ public class SimpleSchemaTest extends ProducerConsumerBase {
                 assertNotNull(data.getSchemaVersion());
                 assertEquals(data.getValue().getKey().getField("i"), i * 100);
                 assertEquals(data.getValue().getValue().i, i * 1000);
+                KeyValueSchema keyValueSchema = (KeyValueSchema) data.getSchema().get();
+                assertNotNull(keyValueSchema.getKeySchema());
+                assertNotNull(keyValueSchema.getValueSchema());
             }
 
             // verify c4
@@ -622,6 +635,9 @@ public class SimpleSchemaTest extends ProducerConsumerBase {
                 assertNotNull(data.getSchemaVersion());
                 assertEquals(data.getValue().getKey().i, i * 100);
                 assertEquals(data.getValue().getValue().getField("i"), i * 1000);
+                KeyValueSchema keyValueSchema = (KeyValueSchema) data.getSchema().get();
+                assertNotNull(keyValueSchema.getKeySchema());
+                assertNotNull(keyValueSchema.getValueSchema());
             }
         }
     }
