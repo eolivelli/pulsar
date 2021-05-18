@@ -480,6 +480,41 @@ public class SchemaTest extends MockedPulsarServiceBaseTest {
         testKeyValueSchema(KeyValueEncodingType.SEPARATED);
     }
 
+    @Test
+    public void testNullKey() throws Exception {
+        final String tenant = PUBLIC_TENANT;
+        final String namespace = "test-namespace-" + randomName(16);
+        final String topicName = "test-kv-schema-" + randomName(16);
+
+        final String topic = TopicName.get(
+                TopicDomain.persistent.value(),
+                tenant,
+                namespace,
+                topicName).toString();
+
+        admin.namespaces().createNamespace(
+                tenant + "/" + namespace,
+                Sets.newHashSet(CLUSTER_NAME));
+
+        admin.topics().createPartitionedTopic(topic, 2);
+
+        Producer<String> producer = pulsarClient
+                .newProducer(Schema.STRING)
+                .topic(topic)
+                .create();
+
+        Consumer<String> consumer = pulsarClient.newConsumer(Schema.STRING)
+                .subscriptionName("test-sub")
+                .topic(topic)
+                .subscribe();
+
+        producer.send("foo");
+
+        Message<String> message = consumer.receive();
+        assertNull(message.getKey());
+        assertEquals("foo", message.getValue());
+    }
+
     private void testKeyValueSchema(KeyValueEncodingType keyValueEncodingType) throws Exception {
         final String tenant = PUBLIC_TENANT;
         final String namespace = "test-namespace-" + randomName(16);
@@ -512,7 +547,7 @@ public class SchemaTest extends MockedPulsarServiceBaseTest {
                 .topic(topic)
                 .subscribe();
 
-        producer.send(new KeyValue<>("foo", 123));
+        producer.newMessage().key(null).value(new KeyValue<>("foo", 123)).send();
 
         Message<KeyValue<String, Integer>> message = consumer.receive();
         Message<GenericRecord> message2 = consumer2.receive();
