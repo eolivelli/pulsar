@@ -20,6 +20,7 @@ package org.apache.pulsar.common.schema;
 
 import java.util.Collections;
 import java.util.Map;
+
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.classification.InterfaceAudience;
 import org.apache.pulsar.common.classification.InterfaceStability;
@@ -90,7 +91,8 @@ public interface SchemaInfo {
             if (!this.propertiesSet) {
                 propertiesValue = Collections.emptyMap();
             }
-            return DefaultImplementation.newSchemaInfoImpl(name, schema, type, propertiesValue);
+            return DefaultImplementation.getDefaultImplementation()
+                    .newSchemaInfoImpl(name, schema, type, propertiesValue);
         }
     }
 }
