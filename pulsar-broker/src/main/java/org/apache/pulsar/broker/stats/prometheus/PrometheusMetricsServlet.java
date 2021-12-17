@@ -20,6 +20,7 @@ package org.apache.pulsar.broker.stats.prometheus;
 
 import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -69,17 +70,27 @@ public class PrometheusMetricsServlet extends HttpServlet {
         AsyncContext context = request.startAsync();
         context.setTimeout(metricsServletTimeoutMs);
         executor.execute(safeRun(() -> {
+            long start = System.currentTimeMillis();
             HttpServletResponse res = (HttpServletResponse) context.getResponse();
             try {
                 res.setStatus(HttpStatus.OK_200);
                 res.setContentType("text/plain");
                 PrometheusMetricsGenerator.generate(pulsar, shouldExportTopicMetrics, shouldExportConsumerMetrics,
                         res.getOutputStream(), metricsProviders);
-                context.complete();
 
             } catch (Exception e) {
-                log.error("Failed to generate prometheus stats", e);
+                long end = System.currentTimeMillis();
+                long time = end - start;
+                if (e instanceof EOFException) {
+                    // NO STACKTRACE
+                    log.error("Failed to send metrics, " +
+                            "likely the client closed the connection due to a timeout ({} ms elapsed): {}",
+                             time, e + "");
+                } else {
+                    log.error("Failed to generate prometheus stats, {} ms elapsed", time, e);
+                }
                 res.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+            } finally {
                 context.complete();
             }
         }));
