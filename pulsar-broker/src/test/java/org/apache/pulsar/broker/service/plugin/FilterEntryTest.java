@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.bookkeeper.mledger.impl.PositionImpl;
 import org.apache.pulsar.broker.service.AbstractBaseDispatcher;
+import org.apache.pulsar.broker.service.AbstractTopic;
 import org.apache.pulsar.broker.service.BrokerService;
 import org.apache.pulsar.broker.service.BrokerTestBase;
 import org.apache.pulsar.broker.service.Dispatcher;
@@ -214,6 +215,7 @@ public class FilterEntryTest extends BrokerTestBase {
             assertEquals(filtered, 10);
         }
     }
+<<<<<<< HEAD
 
     @Test
     public void testEntryFilterRescheduleMessageDependingOnConsumerSharedSubscription() throws Throwable {
@@ -305,4 +307,6 @@ public class FilterEntryTest extends BrokerTestBase {
             }
         }
     }
+=======
+>>>>>>> d3ccd4ae2bf (Add filteredMsgCount for `pulsar-admin topics stats` (#14531))
 }
