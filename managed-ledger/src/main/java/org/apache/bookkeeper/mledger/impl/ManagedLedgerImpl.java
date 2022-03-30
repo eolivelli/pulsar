@@ -1750,7 +1750,7 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
 
             LedgerInfo info = ledgers.get(ledgerId);
             CompletableFuture<ReadHandle> openFuture;
-
+            final boolean fromOffloader;
             if (config.getLedgerOffloader() != null
                     && config.getLedgerOffloader().getOffloadPolicies() != null
                     && config.getLedgerOffloader().getOffloadPolicies()
@@ -1759,22 +1759,27 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
                     && !info.getOffloadContext().getBookkeeperDeleted()) {
                 openFuture = bookKeeper.newOpenLedgerOp().withRecovery(!isReadOnly()).withLedgerId(ledgerId)
                         .withDigestType(config.getDigestType()).withPassword(config.getPassword()).execute();
-
+                fromOffloader = false;
             } else if (info != null && info.hasOffloadContext() && info.getOffloadContext().getComplete()) {
-
+                fromOffloader = true;
                 UUID uid = new UUID(info.getOffloadContext().getUidMsb(), info.getOffloadContext().getUidLsb());
                 // TODO: improve this to load ledger offloader by driver name recorded in metadata
                 Map<String, String> offloadDriverMetadata = OffloadUtils.getOffloadDriverMetadata(info);
                 offloadDriverMetadata.put("ManagedLedgerName", name);
+                mbean.recordOffloadLedgerOpenOp();
                 openFuture = config.getLedgerOffloader().readOffloaded(ledgerId, uid,
                         offloadDriverMetadata);
             } else {
                 openFuture = bookKeeper.newOpenLedgerOp().withRecovery(!isReadOnly()).withLedgerId(ledgerId)
                         .withDigestType(config.getDigestType()).withPassword(config.getPassword()).execute();
+                fromOffloader = false;
             }
             openFuture.whenCompleteAsync((res, ex) -> {
                 mbean.endDataLedgerOpenOp();
                 if (ex != null) {
+                    if (fromOffloader) {
+                        mbean.recordOffloadLedgerOpenError();
+                    }
                     ledgerCache.remove(ledgerId, promise);
                     promise.completeExceptionally(createManagedLedgerException(ex));
                 } else {
@@ -2892,6 +2897,7 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
             String driverName = config.getLedgerOffloader().getOffloadDriverName();
             Map<String, String> driverMetadata = config.getLedgerOffloader().getOffloadDriverMetadata();
 
+            mbean.recordOffloadLedgerOffloadOp();
             prepareLedgerInfoForOffloaded(ledgerId, uuid, driverName, driverMetadata)
                 .thenCompose((ignore) -> getLedgerHandle(ledgerId))
                 .thenCompose(readHandle -> config.getLedgerOffloader().offload(readHandle, uuid, extraMetadata))
@@ -2914,6 +2920,7 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
                     })
                 .whenComplete((ignore, exception) -> {
                         if (exception != null) {
+                            mbean.recordOffloadLedgerOffloadError();
                             lastOffloadFailureTimestamp = System.currentTimeMillis();
                             log.warn("[{}] Exception occurred for ledgerId {} timestamp {} during offload", name, ledgerId, lastOffloadFailureTimestamp, exception);
                             PositionImpl newFirstUnoffloaded = PositionImpl.get(ledgerId, 0);
@@ -3100,11 +3107,13 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
             Map<String, String> offloadDriverMetadata, String cleanupReason) {
         log.info("[{}] Cleanup offload for ledgerId {} uuid {} because of the reason {}.",
                 name, ledgerId, uuid.toString(), cleanupReason);
+        mbean.recordOffloadLedgerDeleteOp();
         Retries.run(Backoff.exponentialJittered(TimeUnit.SECONDS.toMillis(1), TimeUnit.SECONDS.toHours(1)).limit(10),
                 Retries.NonFatalPredicate,
                 () -> config.getLedgerOffloader().deleteOffloaded(ledgerId, uuid, offloadDriverMetadata),
                 scheduledExecutor, name).whenComplete((ignored, exception) -> {
                     if (exception != null) {
+                        mbean.recordOffloadLedgerDeleteError();
                         log.warn("[{}] Error cleaning up offload for {}, (cleanup reason: {})",
                                 name, ledgerId, cleanupReason, exception);
                     }
