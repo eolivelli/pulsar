@@ -215,7 +215,7 @@ public class FilterEntryTest extends BrokerTestBase {
             assertEquals(filtered, 10);
         }
     }
-<<<<<<< HEAD
+
 
     @Test
     public void testEntryFilterRescheduleMessageDependingOnConsumerSharedSubscription() throws Throwable {
