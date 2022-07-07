@@ -18,11 +18,14 @@
  */
 package org.apache.pulsar.client.admin;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import org.apache.pulsar.client.admin.PulsarAdminException.ConflictException;
 import org.apache.pulsar.client.admin.PulsarAdminException.NotAuthorizedException;
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException;
@@ -4467,4 +4470,12 @@ public interface Namespaces {
      * @return
      */
     CompletableFuture<Void> removeNamespaceResourceGroupAsync(String namespace);
+
+    /**
+     * Scan Tiered Storage and validate the status of the objects.
+     * @param namespace the namespace
+     * @param dataReceiver the receiver of the raw stream of data
+     * @throws PulsarAdminException
+     */
+    void scanOffloadedObjects(String namespace, Consumer<InputStream> dataReceiver) throws PulsarAdminException;
 }

@@ -1945,6 +1945,20 @@ public class CmdNamespaces extends CmdBase {
         }
     }
 
+    @Parameters(commandDescription = "Scan offloaded objects for a namespace")
+    private class ScanOffLoadedObjects extends CliCommand {
+        @Parameter(description = "tenant/namespace", required = true)
+        private java.util.List<String> params;
+
+        @Override
+        void run() throws PulsarAdminException {
+            String namespace = validateNamespace(params);
+            getAdmin().namespaces().scanOffloadedObjects(namespace, (inputStream -> {
+                printRaw(inputStream);
+            }));
+        }
+    }
+
     @Parameters(commandDescription = "Set offloadThreshold for a namespace")
     private class SetOffloadThreshold extends CliCommand {
         @Parameter(description = "tenant/namespace", required = true)
@@ -2729,6 +2743,7 @@ public class CmdNamespaces extends CmdBase {
 
         jcommander.addCommand("get-offload-threshold", new GetOffloadThreshold());
         jcommander.addCommand("set-offload-threshold", new SetOffloadThreshold());
+        jcommander.addCommand("scan-offloaded-objects", new ScanOffLoadedObjects());
 
         jcommander.addCommand("get-offload-deletion-lag", new GetOffloadDeletionLag());
         jcommander.addCommand("set-offload-deletion-lag", new SetOffloadDeletionLag());

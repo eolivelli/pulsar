@@ -22,11 +22,15 @@ import com.beust.jcommander.ParameterException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.collect.Sets;
+
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
@@ -208,6 +212,14 @@ abstract class CliCommand {
             } else {
                 System.out.println(writer.writeValueAsString(item));
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    <T> void printRaw(InputStream item) {
+        try {
+            IOUtils.copy(item, System.out);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

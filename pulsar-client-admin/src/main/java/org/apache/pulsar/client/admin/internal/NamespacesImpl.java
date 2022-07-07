@@ -19,11 +19,15 @@
 package org.apache.pulsar.client.admin.internal;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.InvocationCallback;
 import javax.ws.rs.client.WebTarget;
@@ -2593,5 +2597,20 @@ public class NamespacesImpl extends BaseResource implements Namespaces {
         WebTarget namespacePath = base.path(namespace.toString());
         namespacePath = WebTargets.addParts(namespacePath, parts);
         return namespacePath;
+    }
+
+    @Override
+    public void scanOffloadedObjects(String namespace, Consumer<InputStream> dataReceiver)
+            throws PulsarAdminException {
+        NamespaceName ns = NamespaceName.get(namespace);
+        WebTarget path = namespacePath(ns, "resourcegroup");
+
+        try (InputStream stream =
+                request(path).
+                get(InputStream.class);) {
+            dataReceiver.accept(stream);
+        } catch (IOException err) {
+            throw new PulsarAdminException(err);
+        }
     }
 }
