@@ -24,14 +24,19 @@ import static org.apache.bookkeeper.mledger.impl.ManagedLedgerImpl.createManaged
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.bookkeeper.client.api.BKException;
 import org.apache.bookkeeper.client.api.LedgerEntry;
 import org.apache.bookkeeper.client.api.ReadHandle;
 import org.apache.bookkeeper.mledger.AsyncCallbacks.ReadEntriesCallback;
 import org.apache.bookkeeper.mledger.AsyncCallbacks.ReadEntryCallback;
+import org.apache.bookkeeper.mledger.Entry;
 import org.apache.bookkeeper.mledger.ManagedLedgerException;
 import org.apache.bookkeeper.mledger.impl.EntryImpl;
 import org.apache.bookkeeper.mledger.impl.ManagedLedgerImpl;
@@ -39,6 +44,7 @@ import org.apache.bookkeeper.mledger.impl.PositionImpl;
 import org.apache.bookkeeper.mledger.intercept.ManagedLedgerInterceptor;
 import org.apache.bookkeeper.mledger.util.RangeCache;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.pulsar.common.util.FutureUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +52,12 @@ import org.slf4j.LoggerFactory;
  * Cache data payload for entries of all ledgers.
  */
 public class RangeEntryCacheImpl implements EntryCache {
+
+    private static final Logger log = LoggerFactory.getLogger(RangeEntryCacheImpl.class);
+    private static final boolean OLD_BEHAVIOUR = Boolean.getBoolean("cache.old.behaviour");
+    static {
+        log.info("cache.old.behaviour {}", OLD_BEHAVIOUR);
+    }
 
     private final RangeEntryCacheManagerImpl manager;
     private final ManagedLedgerImpl ml;
@@ -269,6 +281,7 @@ public class RangeEntryCacheImpl implements EntryCache {
         }
 
         Collection<EntryImpl> cachedEntries = entries.getRange(firstPosition, lastPosition);
+        log.info("[{}] read {} out of {} ({}) from cache", getName(),cachedEntries.size(), (lastEntry +1 - firstEntry), entriesToRead);
 
         if (cachedEntries.size() == entriesToRead) {
             long totalCachedSize = 0;
@@ -289,12 +302,13 @@ public class RangeEntryCacheImpl implements EntryCache {
 
             callback.readEntriesComplete((List) entriesToReturn, ctx);
 
-        } else {
-            if (!cachedEntries.isEmpty()) {
-                cachedEntries.forEach(entry -> entry.release());
-            }
+        } else if (cachedEntries.isEmpty() || OLD_BEHAVIOUR) {
+
+            cachedEntries.forEach(entry -> entry.release());
 
             // Read all the entries from bookkeeper
+            // currently the BK client doesn't do anything special for range reads
+            // because the reads may go to different bookies
             lh.readAsync(firstEntry, lastEntry).thenAcceptAsync(
                     ledgerEntries -> {
                         requireNonNull(ml.getName());
@@ -332,6 +346,56 @@ public class RangeEntryCacheImpl implements EntryCache {
                             callback.readEntriesFailed(mlException, ctx);
                         }
                         return null;
+            });
+        } else {
+            // some entries were in cache, some other weren't
+            // read the remaining entries
+
+            List<CompletableFuture<EntryImpl>> results = new ArrayList<>();
+            for (long entryId = firstEntry; entryId <= lastEntry; firstEntry++) {
+                // we can do this more efficiently, as cachedEntries are ordered by entryId
+                EntryImpl cached = cachedEntries.stream().filter(e->e.getEntryId() == entryId).findFirst().orElse(null);
+                if (cached != null) {
+                    results.add(CompletableFuture.completedFuture(cached));
+                } else {
+                    CompletableFuture<EntryImpl> handle = lh.readAsync(entryId, entryId)
+                            .thenApply(ledgerEntries -> {
+                                try {
+                                    EntryImpl entry = RangeEntryCacheManagerImpl.create(
+                                            ledgerEntries.iterator().next(), interceptor);
+                                    if (shouldCacheEntry) {
+                                        EntryImpl cacheEntry = EntryImpl.create(entry);
+                                        insert(cacheEntry);
+                                        cacheEntry.release();
+                                    }
+                                    return entry;
+                                } finally {
+                                    ledgerEntries.close();
+                                }
+                            });
+                    results.add(handle);
+                }
+            }
+            // TODO: update metrics....
+            FutureUtil.waitForAll(results).whenComplete((___, exception) -> {
+                if (exception != null) {
+                    // TODO: release other entries read from BK, not only the cached entries
+                    cachedEntries.forEach(entry -> entry.release());
+                    Throwable realError = FutureUtil.unwrapCompletionException(exception);
+                    if (realError instanceof BKException
+                            && ((BKException) realError).getCode() == BKException.Code.TooManyRequestsException) {
+                        callback.readEntriesFailed(createManagedLedgerException(exception), ctx);
+                    } else {
+                        ml.invalidateLedgerHandle(lh);
+                        callback.readEntriesFailed(ManagedLedgerException.getManagedLedgerException(exception), ctx);
+                    }
+                } else {
+                    List<Entry> entriesToReturn = new ArrayList<>(results.size());
+                    for (CompletableFuture<EntryImpl> entryFuture : results) {
+                        entriesToReturn.add(entryFuture.getNow(null));
+                    }
+                    callback.readEntriesComplete(entriesToReturn, ctx);
+                }
             });
         }
     }
@@ -373,6 +437,4 @@ public class RangeEntryCacheImpl implements EntryCache {
         long evictedSize = entries.evictLEntriesBeforeTimestamp(timestamp);
         manager.entriesRemoved(evictedSize);
     }
-
-    private static final Logger log = LoggerFactory.getLogger(RangeEntryCacheImpl.class);
 }

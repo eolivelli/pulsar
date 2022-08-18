@@ -4202,7 +4202,7 @@ public class ManagedLedgerImpl implements ManagedLedger, CreateCallback {
                 }
             }
             cursor.getKey().setCacheReadEntry(cursorsInSameBacklogRange >= minBacklogCursorsForCaching);
-            if (log.isDebugEnabled()) {
+            if (log.isInfoEnabled()) {
                 log.info("{} Enabling cache read = {} for {}", name,
                         cursorsInSameBacklogRange >= minBacklogCursorsForCaching, cursor.getKey().getName());
             }
