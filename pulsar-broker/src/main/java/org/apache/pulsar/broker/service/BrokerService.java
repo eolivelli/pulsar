@@ -1405,7 +1405,8 @@ public class BrokerService implements Closeable {
         return topicFuture;
     }
 
-    CompletableFuture<Map<String, String>> fetchTopicPropertiesAsync(TopicName topicName) {
+    @VisibleForTesting
+    protected CompletableFuture<Map<String, String>> fetchTopicPropertiesAsync(TopicName topicName) {
         if (!topicName.isPartitioned()) {
             return managedLedgerFactory.getManagedLedgerPropertiesAsync(topicName.getPersistenceNamingEncoding());
         } else {
@@ -1594,7 +1595,8 @@ public class BrokerService implements Closeable {
                     RetentionPolicies retentionPolicies = null;
                     OffloadPoliciesImpl topicLevelOffloadPolicies = null;
 
-                    if (pulsar.getConfig().isTopicLevelPoliciesEnabled()) {
+                    if (pulsar.getConfig().isTopicLevelPoliciesEnabled()
+                            && !NamespaceService.isSystemServiceNamespace(namespace.toString())) {
                         try {
                             TopicPolicies topicPolicies = pulsar.getTopicPoliciesService().getTopicPolicies(topicName);
                             if (topicPolicies != null) {
