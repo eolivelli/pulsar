@@ -69,6 +69,7 @@ import org.apache.pulsar.client.api.ProducerAccessMode;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.SizeUnit;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
@@ -512,6 +513,7 @@ public class PerformanceProducer {
 
 
             ClientBuilder clientBuilder = PerfClientUtils.createClientBuilderFromArguments(arguments)
+                    .memoryLimit(arguments.memoryLimit, SizeUnit.BYTES)
                     .enableTransaction(arguments.isEnableTransaction);
 
             client = clientBuilder.build();
@@ -579,7 +581,6 @@ public class PerformanceProducer {
                             log.info("------------- DONE (reached the maximum duration: [{} seconds] of production) "
                                     + "--------------", arguments.testTime);
                             doneLatch.countDown();
-                            Thread.sleep(5000);
                             produceEnough = true;
                             break;
                         }
@@ -590,7 +591,6 @@ public class PerformanceProducer {
                             log.info("------------- DONE (reached the maximum number: {} of production) --------------"
                                     , numMessages);
                             doneLatch.countDown();
-                            Thread.sleep(5000);
                             produceEnough = true;
                             break;
                         }
