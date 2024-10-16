@@ -33,7 +33,7 @@ import org.apache.bookkeeper.common.annotation.InterfaceStability;
 import org.apache.bookkeeper.mledger.impl.NullLedgerOffloader;
 import org.apache.bookkeeper.mledger.intercept.ManagedLedgerInterceptor;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.pulsar.common.util.collections.ConcurrentOpenLongPairRangeSet;
+import org.apache.pulsar.common.util.collections.OpenLongPairRangeSet;
 
 /**
  * Configuration class for a ManagedLedger.
@@ -64,6 +64,7 @@ public class ManagedLedgerConfig {
     private long retentionTimeMs = 0;
     private long retentionSizeInMB = 0;
     private boolean autoSkipNonRecoverableData;
+    private boolean ledgerForceRecovery;
     private boolean lazyCursorRecovery = false;
     private long metadataOperationsTimeoutSeconds = 60;
     private long readEntryTimeoutSeconds = 120;
@@ -79,6 +80,7 @@ public class ManagedLedgerConfig {
     private ManagedLedgerInterceptor managedLedgerInterceptor;
     private Map<String, String> properties;
     private int inactiveLedgerRollOverTimeMs = 0;
+    private int inactiveOffloadedLedgerEvictionTimeMs = 0;
     @Getter
     @Setter
     private boolean cacheEvictionByMarkDeletedPosition = false;
@@ -86,7 +88,9 @@ public class ManagedLedgerConfig {
     private int minimumBacklogEntriesForCaching = 1000;
     private int maxBacklogBetweenCursorsForCaching = 1000;
     private boolean triggerOffloadOnTopicLoad = false;
-
+    @Getter
+    @Setter
+    private String storageClassName;
     @Getter
     @Setter
     private String shadowSourceName;
@@ -282,7 +286,7 @@ public class ManagedLedgerConfig {
     }
 
     /**
-     * should use {@link ConcurrentOpenLongPairRangeSet} to store unacked ranges.
+     * should use {@link OpenLongPairRangeSet} to store unacked ranges.
      * @return
      */
     public boolean isUnackedRangesOpenCacheSetEnabled() {
@@ -466,6 +470,17 @@ public class ManagedLedgerConfig {
     }
 
     /**
+     * Skip managed ledger failure to recover managed ledger forcefully.
+     */
+    public boolean isLedgerForceRecovery() {
+        return ledgerForceRecovery;
+    }
+
+    public void setLedgerForceRecovery(boolean ledgerForceRecovery) {
+        this.ledgerForceRecovery = ledgerForceRecovery;
+    }
+
+    /**
      * @return max unacked message ranges that will be persisted and recovered.
      *
      */
@@ -505,8 +520,10 @@ public class ManagedLedgerConfig {
         return maxUnackedRangesToPersistInMetadataStore;
     }
 
-    public void setMaxUnackedRangesToPersistInMetadataStore(int maxUnackedRangesToPersistInMetadataStore) {
+    public ManagedLedgerConfig setMaxUnackedRangesToPersistInMetadataStore(
+            int maxUnackedRangesToPersistInMetadataStore) {
         this.maxUnackedRangesToPersistInMetadataStore = maxUnackedRangesToPersistInMetadataStore;
+        return this;
     }
 
     /**
@@ -690,6 +707,14 @@ public class ManagedLedgerConfig {
      */
     public void setInactiveLedgerRollOverTime(int inactiveLedgerRollOverTimeMs, TimeUnit unit) {
         this.inactiveLedgerRollOverTimeMs = (int) unit.toMillis(inactiveLedgerRollOverTimeMs);
+    }
+
+    public int getInactiveOffloadedLedgerEvictionTimeMs() {
+        return inactiveOffloadedLedgerEvictionTimeMs;
+    }
+
+    public void setInactiveOffloadedLedgerEvictionTime(int inactiveOffloadedLedgerEvictionTime, TimeUnit unit) {
+        this.inactiveOffloadedLedgerEvictionTimeMs = (int) unit.toMillis(inactiveOffloadedLedgerEvictionTime);
     }
 
     /**
