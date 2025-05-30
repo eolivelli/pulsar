@@ -18,13 +18,13 @@
  */
 package org.apache.pulsar.broker.service;
 
+import com.google.re2j.Pattern;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.function.BiConsumer;
-import java.util.regex.Pattern;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.namespace.NamespaceService;
 import org.apache.pulsar.broker.resources.TopicResources;
@@ -70,7 +70,8 @@ public class TopicListService {
          */
         @Override
         public void accept(String topicName, NotificationType notificationType) {
-            if (topicsPattern.matcher(TopicName.get(topicName).getPartitionedTopicName()).matches()) {
+            String partitionedTopicName = TopicName.get(topicName).getPartitionedTopicName();
+            if (topicsPattern.matcher(TopicList.removeTopicDomainScheme(partitionedTopicName)).matches()) {
                 List<String> newTopics;
                 List<String> deletedTopics;
                 if (notificationType == NotificationType.Deleted) {
